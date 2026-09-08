@@ -1,10 +1,17 @@
 {
   "name": "grokbot-shopmonkey-plugin",
-  "version": "0.1.0",
-  "description": "ShopMonkey REST v3: orders, customers, and vehicles.",
-  "author": { "name": "Diego" },
+  "version": "0.2.0",
+  "description": "ShopMonkey REST v3: orders, customers, vehicles, and appointments.",
+  "author": {
+    "name": "Diego"
+  },
   "homepage": "https://shopmonkey.dev",
-  "keywords": ["shopmonkey", "automotive", "mcp", "grokbot"],
+  "keywords": [
+    "shopmonkey",
+    "automotive",
+    "mcp",
+    "grokbot"
+  ],
   "variables": {
     "type": "object",
     "properties": {
@@ -14,6 +21,8 @@
         "description": "Bearer API key from ShopMonkey Settings → Integration → API Keys."
       }
     },
-    "required": ["SM_TOKEN"]
+    "required": [
+      "SM_TOKEN"
+    ]
   }
 }

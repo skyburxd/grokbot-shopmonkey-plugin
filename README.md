@@ -1,6 +1,6 @@
 # grokbot-shopmonkey-plugin
 
-Cursor Plugin wrapping ShopMonkey REST v3 for orders, customers, and vehicles.
+Cursor Plugin wrapping ShopMonkey REST v3 for orders, customers, vehicles, and appointments.
 
 Docs: https://shopmonkey.dev
 
@@ -38,5 +38,11 @@ Do not put the key in this repo or in mcp.json. Only the ${SM_TOKEN} placeholder
 | shopmonkey_list_customer_vehicles | GET /v3/customer/:id/vehicle |
 | shopmonkey_get_vehicle | GET /v3/vehicle/:id |
 | shopmonkey_create_vehicle | POST /v3/vehicle |
+| shopmonkey_list_appointments | GET /v3/appointment |
+| shopmonkey_search_appointments | POST /v3/appointment/search |
+| shopmonkey_get_appointment | GET /v3/appointment/:id |
+| shopmonkey_create_appointment | POST /v3/appointment |
+
+`shopmonkey_create_appointment` requires `name`, `startDate`, `endDate`, and `color`. When `sendConfirmation` / `sendReminder` are omitted, both default to true (confirmation and reminder stay ON unless overridden).
 
 Tools pass through official API JSON. See https://shopmonkey.dev

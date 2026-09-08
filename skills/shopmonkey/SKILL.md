@@ -1,6 +1,6 @@
 ---
 name: grokbot-shopmonkey-plugin
-description: Use when looking up or mutating ShopMonkey orders, customers, or vehicles via this plugin's MCP tools (REST v3). Prefer these tools over guessing endpoints or fields.
+description: Use when looking up or mutating ShopMonkey orders, customers, vehicles, or appointments via this plugin's MCP tools (REST v3). Prefer these tools over guessing endpoints or fields.
 ---
 
 ShopMonkey REST v3 plugin. Tools return official API JSON (`{ success, data, meta? }` on success; `{ success, code, message, documentation_url, data? }` on error). Do not invent API data, fields, IDs, prices, or endpoints.
@@ -10,6 +10,7 @@ ShopMonkey REST v3 plugin. Tools return official API JSON (`{ success, data, met
 - Order = { id, number, publicId, companyId, locationId, customerId, vehicleId, status, name, coalescedName, authorized, invoiced, paid, workflowStatusId, totalCostCents, createdDate }. `status` is Estimate | RepairOrder | Invoice.
 - Customer = { id, publicId, companyId, customerType, firstName, lastName, companyName, emails, phoneNumbers, locationIds, createdDate }. `emails` / `phoneNumbers` are resource extras, not table columns.
 - Vehicle = { id, companyId, year, make, model, vin, licensePlate, mileage, mileageUnit, size, type, locationIds }
+- Appointment = { id, publicId, companyId, locationId, customerId, vehicleId, orderId, name, startDate, endDate, color, note, sendConfirmation, sendReminder, confirmationStatus }
 
 ## Auth
 
@@ -29,5 +30,9 @@ Variable `SM_TOKEN` (Plugins → Configure). Sent as `Authorization: Bearer ${SM
 | shopmonkey_list_customer_vehicles | GET | /v3/customer/:id/vehicle |
 | shopmonkey_get_vehicle | GET | /v3/vehicle/:id |
 | shopmonkey_create_vehicle | POST | /v3/vehicle |
+| shopmonkey_list_appointments | GET | /v3/appointment |
+| shopmonkey_search_appointments | POST | /v3/appointment/search |
+| shopmonkey_get_appointment | GET | /v3/appointment/:id |
+| shopmonkey_create_appointment | POST | /v3/appointment |
 
-Create customer requires `customerType` (Customer | Fleet). Create vehicle requires `size` (HeavyDuty | LightDuty | Other). Create order has no required body fields. Customer search body may be empty. There is no shop-wide vehicle list and no POST /v3/order/search — do not call them.
+Create customer requires `customerType` (Customer | Fleet). Create vehicle requires `size` (HeavyDuty | LightDuty | Other). Create order has no required body fields. Create appointment requires `name`, `startDate`, `endDate`, `color` (aqua|black|blue|brown|gray|green|orange|purple|red|yellow). When `sendConfirmation` / `sendReminder` are omitted on create appointment, both default to **true** (leave confirmation and reminder ON unless the user says otherwise). Customer search body may be empty. There is no shop-wide vehicle list and no POST /v3/order/search — do not call them.
