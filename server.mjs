@@ -1,26 +1,717 @@
 #!/usr/bin/env node
 /**
- * ShopMonkey REST v3 MCP server bootstrap (loads embedded 0.2.0 implementation).
- * Readable source lives in-repo after full expand; this file is self-contained.
+ * ShopMonkey REST v3 MCP server (stdio). No package dependencies. Node 18+.
+ * JSON-RPC 2.0 on stdin/stdout (newline-delimited JSON; also Content-Length).
+ * Log only to stderr. Pass through official API JSON; do not invent fields.
  */
-import { gunzipSync } from "node:zlib";
-import { writeFileSync, unlinkSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { spawn } from "node:child_process";
 
-const B64 = "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";
-const code = gunzipSync(Buffer.from(B64, "base64"));
-const out = join(tmpdir(), "grokbot-shopmonkey-plugin-server-0.2.0.mjs");
-writeFileSync(out, code);
+import { Buffer } from "node:buffer";
 
-// Re-exec the real server with the same stdio so MCP framing works.
-const child = spawn(process.execPath, [out], {
-  stdio: ["inherit", "inherit", "inherit"],
-  env: process.env,
+const BASE = "https://api.shopmonkey.cloud/v3";
+const MAX_CHARS = 200000;
+const PROTOCOL = "2024-11-05";
+const SERVER_INFO = { name: "grokbot-shopmonkey-plugin", version: "0.2.0" };
+
+function log(...args) {
+  console.error(...args);
+}
+
+function getToken() {
+  const t = process.env.SM_TOKEN;
+  return typeof t === "string" && t.trim() ? t.trim() : "";
+}
+
+function queryString(query) {
+  if (!query) return "";
+  const usp = new URLSearchParams();
+  for (const [k, v] of Object.entries(query)) {
+    if (v === undefined || v === null) continue;
+    if (typeof v === "object") usp.set(k, JSON.stringify(v));
+    else usp.set(k, String(v));
+  }
+  const s = usp.toString();
+  return s ? "?" + s : "";
+}
+
+function textResult(text, isError) {
+  return {
+    content: [{ type: "text", text: String(text) }],
+    isError: Boolean(isError),
+  };
+}
+
+function missingTokenResult() {
+  return textResult(
+    JSON.stringify({
+      success: false,
+      message:
+        "SM_TOKEN is required. Set it in Plugins → Configure (Bearer API key from ShopMonkey Settings → Integration → API Keys).",
+    }),
+    true
+  );
+}
+
+function truncate(text) {
+  if (typeof text !== "string") text = String(text);
+  if (text.length <= MAX_CHARS) return text;
+  return (
+    text.slice(0, MAX_CHARS) +
+    "\n… truncated: response was " +
+    text.length +
+    " chars (limit " +
+    MAX_CHARS +
+    ")."
+  );
+}
+
+function pick(obj, keys) {
+  const out = {};
+  if (!obj || typeof obj !== "object") return out;
+  for (const k of keys) {
+    if (obj[k] !== undefined) out[k] = obj[k];
+  }
+  return out;
+}
+
+function need(args, key) {
+  const v = args && args[key];
+  if (v === undefined || v === null || v === "") {
+    return textResult(
+      JSON.stringify({
+        success: false,
+        message: "Missing required argument: " + key,
+      }),
+      true
+    );
+  }
+  return null;
+}
+
+async function smFetch(method, path, { query, body } = {}) {
+  const token = getToken();
+  if (!token) return missingTokenResult();
+
+  const url = BASE + path + queryString(query);
+  const headers = { Authorization: "Bearer " + token };
+  const init = { method, headers };
+  if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+    init.body = JSON.stringify(body);
+  }
+
+  try {
+    const res = await fetch(url, init);
+    const text = await res.text();
+    const ok = res.status >= 200 && res.status < 300;
+    return textResult(truncate(text || ""), !ok);
+  } catch (err) {
+    return textResult(
+      JSON.stringify({
+        success: false,
+        message: String(err && err.message ? err.message : err),
+      }),
+      true
+    );
+  }
+}
+
+
+const tools = [
+  {
+    name: "shopmonkey_auth_status",
+    description:
+      "GET /v3/auth/api_key/status — check the ShopMonkey API key (SM_TOKEN) status.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "shopmonkey_list_orders",
+    description:
+      "GET /v3/order — list orders. Core Order fields: id, number, publicId, companyId, locationId, customerId, vehicleId, status (Estimate|RepairOrder|Invoice), name, coalescedName, authorized, invoiced, paid, workflowStatusId, totalCostCents, createdDate. Optional query: limit, skip, where, orderby, include. List meta may include hasMore, total, sums. Returns official API JSON.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: {
+          type: "number",
+          description: "Limit on the number of records to return.",
+        },
+        skip: {
+          type: "number",
+          description: "Number of records to skip for pagination.",
+        },
+        where: {
+          type: "object",
+          description: "Filter object (GET query where; sent as JSON).",
+          additionalProperties: true,
+        },
+        orderby: {
+          type: "string",
+          description: "Order instructions (GET query name is orderby).",
+        },
+        include: {
+          type: "object",
+          description:
+            "Optional expansions documented on list orders: appointments, authorizations, customer, inspections, paymentTerm, services, vehicle.",
+          additionalProperties: true,
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "shopmonkey_get_order",
+    description: "GET /v3/order/:id — find one order by id. Returns official API JSON.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Order id." },
+      },
+      required: ["id"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "shopmonkey_create_order",
+    description:
+      "POST /v3/order — create an order. No body field is required. Optional documented fields: customerId, vehicleId, locationId, name, complaint. Additional documented create fields may be passed in fields. Returns official API JSON.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        customerId: { type: "string" },
+        vehicleId: { type: "string" },
+        locationId: { type: "string" },
+        name: { type: "string" },
+        complaint: { type: "string" },
+        fields: {
+          type: "object",
+          description:
+            "Other documented create-order body fields (do not invent names). Merged with named optional args; named args win on conflict.",
+          additionalProperties: true,
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "shopmonkey_search_customers",
+    description:
+      "POST /v3/customer/search — search customers. Empty body is ok. Optional body: where, limit, skip, orderBy (camelCase). Core Customer fields: id, publicId, companyId, customerType, firstName, lastName, companyName, emails, phoneNumbers, locationIds, createdDate. emails/phoneNumbers are resource extras, not table columns. Returns official API JSON.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        where: {
+          type: "object",
+          description: "Filter object for the search body.",
+          additionalProperties: true,
+        },
+        limit: { type: "number" },
+        skip: { type: "number" },
+        orderBy: {
+          type: "string",
+          description: "Order instructions (POST search uses camelCase orderBy).",
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "shopmonkey_get_customer",
+    description:
+      "GET /v3/customer/:id — find one customer by id. Returns official API JSON (emails/phoneNumbers extras when present).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Customer id." },
+      },
+      required: ["id"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "shopmonkey_create_customer",
+    description:
+      "POST /v3/customer — create a customer. Required: customerType (Customer|Fleet). Optional: firstName, lastName, companyName, emails, phoneNumbers. Returns official API JSON.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        customerType: {
+          type: "string",
+          enum: ["Customer", "Fleet"],
+          description: "Required. Customer or Fleet.",
+        },
+        firstName: { type: "string" },
+        lastName: { type: "string" },
+        companyName: { type: "string" },
+        emails: {
+          type: "array",
+          description: "Email extras on create (not table columns).",
+        },
+        phoneNumbers: {
+          type: "array",
+          description: "Phone number extras on create (not table columns).",
+        },
+      },
+      required: ["customerType"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "shopmonkey_list_customer_vehicles",
+    description:
+      "GET /v3/customer/:id/vehicle — list vehicles for a customer. This is the documented vehicle list path (no shop-wide vehicle list). Core Vehicle fields: id, companyId, year, make, model, vin, licensePlate, mileage, mileageUnit, size, type, locationIds. Returns official API JSON.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: {
+          type: "string",
+          description: "Customer id (path /v3/customer/:id/vehicle).",
+        },
+      },
+      required: ["id"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "shopmonkey_get_vehicle",
+    description: "GET /v3/vehicle/:id — find one vehicle by id. Returns official API JSON.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Vehicle id." },
+      },
+      required: ["id"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "shopmonkey_create_vehicle",
+    description:
+      "POST /v3/vehicle — create a vehicle. Required: size (HeavyDuty|LightDuty|Other). Optional: customerId, locationId, vin, year, make, model, mileage. Returns official API JSON.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        size: {
+          type: "string",
+          enum: ["HeavyDuty", "LightDuty", "Other"],
+          description: "Required. HeavyDuty, LightDuty, or Other.",
+        },
+        customerId: { type: "string" },
+        locationId: { type: "string" },
+        vin: { type: "string" },
+        year: { type: "integer" },
+        make: { type: "string" },
+        model: { type: "string" },
+        mileage: { type: "number" },
+      },
+      required: ["size"],
+      additionalProperties: false,
+    },
+  },
+
+  {
+    name: "shopmonkey_list_appointments",
+    description:
+      "GET /v3/appointment — list appointments. Core Appointment fields: id, publicId, companyId, locationId, customerId, vehicleId, orderId, name, startDate, endDate, color, note, sendConfirmation, sendReminder, confirmationStatus. Optional query: limit, skip, where, orderby. Returns official API JSON.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: {
+          type: "number",
+          description: "Limit on the number of records to return.",
+        },
+        skip: {
+          type: "number",
+          description: "Number of records to skip for pagination.",
+        },
+        where: {
+          type: "object",
+          description: "Filter object (GET query where; sent as JSON).",
+          additionalProperties: true,
+        },
+        orderby: {
+          type: "string",
+          description: "Order instructions (GET query name is orderby).",
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "shopmonkey_search_appointments",
+    description:
+      "POST /v3/appointment/search — search appointments. Empty body is ok. Optional body: where, limit, skip, orderBy (camelCase). Returns official API JSON.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        where: {
+          type: "object",
+          description: "Filter object for the search body.",
+          additionalProperties: true,
+        },
+        limit: { type: "number" },
+        skip: { type: "number" },
+        orderBy: {
+          type: "string",
+          description: "Order instructions (POST search uses camelCase orderBy).",
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "shopmonkey_get_appointment",
+    description:
+      "GET /v3/appointment/:id — find one appointment by id. Returns official API JSON.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Appointment id." },
+      },
+      required: ["id"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "shopmonkey_create_appointment",
+    description:
+      "POST /v3/appointment — create an appointment. Required: name, startDate, endDate, color (aqua|black|blue|brown|gray|green|orange|purple|red|yellow). Optional: customerId, vehicleId, orderId, note, useEmail, useSMS, sendConfirmation, sendReminder, technicianIds, allDay. When sendConfirmation/sendReminder are omitted, both default to true (Diego rule: leave confirmation and reminder ON). Returns official API JSON.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Required. Appointment name." },
+        startDate: { type: "string", description: "Required. Start date/time." },
+        endDate: { type: "string", description: "Required. End date/time." },
+        color: {
+          type: "string",
+          enum: [
+            "aqua",
+            "black",
+            "blue",
+            "brown",
+            "gray",
+            "green",
+            "orange",
+            "purple",
+            "red",
+            "yellow",
+          ],
+          description: "Required. Appointment color.",
+        },
+        customerId: { type: "string" },
+        vehicleId: { type: "string" },
+        orderId: { type: "string" },
+        note: { type: "string" },
+        useEmail: { type: "boolean" },
+        useSMS: { type: "boolean" },
+        sendConfirmation: {
+          type: "boolean",
+          description: "Defaults to true when omitted.",
+        },
+        sendReminder: {
+          type: "boolean",
+          description: "Defaults to true when omitted.",
+        },
+        technicianIds: {
+          type: "array",
+          items: { type: "string" },
+          description: "Optional technician id list.",
+        },
+        allDay: { type: "boolean" },
+      },
+      required: ["name", "startDate", "endDate", "color"],
+      additionalProperties: false,
+    },
+  },
+];
+
+async function callTool(name, args) {
+  const a = args && typeof args === "object" ? args : {};
+  if (!tools.some((t) => t.name === name)) {
+    return textResult(
+      JSON.stringify({ success: false, message: "Unknown tool: " + name }),
+      true
+    );
+  }
+  if (!getToken()) return missingTokenResult();
+  switch (name) {
+    case "shopmonkey_auth_status":
+      return smFetch("GET", "/auth/api_key/status");
+    case "shopmonkey_list_orders": {
+      const query = pick(a, ["limit", "skip", "where", "orderby", "include"]);
+      return smFetch("GET", "/order", { query });
+    }
+    case "shopmonkey_get_order": {
+      const err = need(a, "id");
+      if (err) return err;
+      return smFetch("GET", "/order/" + encodeURIComponent(String(a.id)));
+    }
+    case "shopmonkey_create_order": {
+      const extra =
+        a.fields && typeof a.fields === "object" && !Array.isArray(a.fields)
+          ? a.fields
+          : {};
+      const body = { ...extra };
+      for (const k of ["customerId", "vehicleId", "locationId", "name", "complaint"]) {
+        if (a[k] !== undefined) body[k] = a[k];
+      }
+      return smFetch("POST", "/order", { body });
+    }
+    case "shopmonkey_search_customers": {
+      const body = pick(a, ["where", "limit", "skip", "orderBy"]);
+      return smFetch("POST", "/customer/search", { body });
+    }
+    case "shopmonkey_get_customer": {
+      const err = need(a, "id");
+      if (err) return err;
+      return smFetch("GET", "/customer/" + encodeURIComponent(String(a.id)));
+    }
+    case "shopmonkey_create_customer": {
+      const err = need(a, "customerType");
+      if (err) return err;
+      const body = pick(a, [
+        "customerType",
+        "firstName",
+        "lastName",
+        "companyName",
+        "emails",
+        "phoneNumbers",
+      ]);
+      return smFetch("POST", "/customer", { body });
+    }
+    case "shopmonkey_list_customer_vehicles": {
+      const err = need(a, "id");
+      if (err) return err;
+      return smFetch(
+        "GET",
+        "/customer/" + encodeURIComponent(String(a.id)) + "/vehicle"
+      );
+    }
+    case "shopmonkey_get_vehicle": {
+      const err = need(a, "id");
+      if (err) return err;
+      return smFetch("GET", "/vehicle/" + encodeURIComponent(String(a.id)));
+    }
+    case "shopmonkey_create_vehicle": {
+      const err = need(a, "size");
+      if (err) return err;
+      const body = pick(a, [
+        "size",
+        "customerId",
+        "locationId",
+        "vin",
+        "year",
+        "make",
+        "model",
+        "mileage",
+      ]);
+      return smFetch("POST", "/vehicle", { body });
+    }
+    case "shopmonkey_list_appointments": {
+      const query = pick(a, ["limit", "skip", "where", "orderby"]);
+      return smFetch("GET", "/appointment", { query });
+    }
+    case "shopmonkey_search_appointments": {
+      const body = pick(a, ["where", "limit", "skip", "orderBy"]);
+      return smFetch("POST", "/appointment/search", { body });
+    }
+    case "shopmonkey_get_appointment": {
+      const err = need(a, "id");
+      if (err) return err;
+      return smFetch("GET", "/appointment/" + encodeURIComponent(String(a.id)));
+    }
+    case "shopmonkey_create_appointment": {
+      for (const k of ["name", "startDate", "endDate", "color"]) {
+        const err = need(a, k);
+        if (err) return err;
+      }
+      const body = pick(a, [
+        "name",
+        "startDate",
+        "endDate",
+        "color",
+        "customerId",
+        "vehicleId",
+        "orderId",
+        "note",
+        "useEmail",
+        "useSMS",
+        "sendConfirmation",
+        "sendReminder",
+        "technicianIds",
+        "allDay",
+      ]);
+      if (body.sendConfirmation === undefined) body.sendConfirmation = true;
+      if (body.sendReminder === undefined) body.sendReminder = true;
+      return smFetch("POST", "/appointment", { body });
+    }
+    default:
+      return textResult(
+        JSON.stringify({ success: false, message: "Unknown tool: " + name }),
+        true
+      );
+  }
+}
+
+
+function rpcResult(id, result) {
+  return { jsonrpc: "2.0", id, result };
+}
+
+function rpcError(id, code, message) {
+  return { jsonrpc: "2.0", id, error: { code, message } };
+}
+
+async function handleMessage(msg) {
+  if (!msg || typeof msg !== "object" || Array.isArray(msg)) {
+    return rpcError(null, -32600, "Invalid Request");
+  }
+
+  const { id, method, params } = msg;
+  const hasId = Object.prototype.hasOwnProperty.call(msg, "id");
+
+  if (!method || typeof method !== "string") {
+    if (hasId) return rpcError(id, -32600, "Invalid Request");
+    return null;
+  }
+
+  if (method === "notifications/initialized" || method === "initialized") {
+    return null;
+  }
+
+  if (method === "initialize") {
+    return rpcResult(id, {
+      protocolVersion: PROTOCOL,
+      capabilities: { tools: {} },
+      serverInfo: SERVER_INFO,
+    });
+  }
+
+  if (method === "ping") {
+    return rpcResult(id, {});
+  }
+
+  if (method === "tools/list") {
+    return rpcResult(id, { tools });
+  }
+
+  if (method === "tools/call") {
+    const name = params && params.name;
+    const args = (params && params.arguments) || {};
+    if (!name) {
+      return rpcResult(
+        id,
+        textResult(
+          JSON.stringify({
+            success: false,
+            message: "tools/call requires params.name",
+          }),
+          true
+        )
+      );
+    }
+    const result = await callTool(name, args);
+    return rpcResult(id, result);
+  }
+
+  if (!hasId) return null;
+  return rpcError(id, -32601, "Method not found: " + method);
+}
+
+let framing = null;
+let buf = Buffer.alloc(0);
+let chain = Promise.resolve();
+
+function send(obj) {
+  const json = JSON.stringify(obj);
+  if (framing === "lsp") {
+    const payload = Buffer.from(json, "utf8");
+    process.stdout.write("Content-Length: " + payload.length + "\r\n\r\n");
+    process.stdout.write(payload);
+  } else {
+    process.stdout.write(json + "\n");
+  }
+}
+
+function enqueue(jsonText) {
+  chain = chain
+    .then(async () => {
+      let msg;
+      try {
+        msg = JSON.parse(jsonText);
+      } catch {
+        send(rpcError(null, -32700, "Parse error"));
+        return;
+      }
+      try {
+        const reply = await handleMessage(msg);
+        if (reply) send(reply);
+      } catch (err) {
+        log(err);
+        if (msg && Object.prototype.hasOwnProperty.call(msg, "id")) {
+          send(
+            rpcError(
+              msg.id,
+              -32603,
+              String(err && err.message ? err.message : err)
+            )
+          );
+        }
+      }
+    })
+    .catch((err) => log(err));
+}
+
+function pump() {
+  while (true) {
+    if (framing === null) {
+      if (buf.length === 0) return;
+      const s = buf.toString("utf8");
+      if (/^\s*Content-Length:/i.test(s)) framing = "lsp";
+      else if (s.includes("\n")) framing = "ndjson";
+      else return;
+    }
+
+    if (framing === "ndjson") {
+      const idx = buf.indexOf(0x0a);
+      if (idx === -1) return;
+      const line = buf.subarray(0, idx).toString("utf8").replace(/\r$/, "").trim();
+      buf = buf.subarray(idx + 1);
+      if (line) enqueue(line);
+      continue;
+    }
+
+    const sep = buf.indexOf("\r\n\r\n");
+    if (sep === -1) return;
+    const header = buf.subarray(0, sep).toString("utf8");
+    const m = header.match(/Content-Length:\s*(\d+)/i);
+    if (!m) {
+      buf = buf.subarray(sep + 4);
+      continue;
+    }
+    const len = Number(m[1]);
+    const start = sep + 4;
+    if (buf.length < start + len) return;
+    const jsonText = buf.subarray(start, start + len).toString("utf8");
+    buf = buf.subarray(start + len);
+    enqueue(jsonText);
+  }
+}
+
+process.stdin.on("data", (chunk) => {
+  buf = Buffer.concat([buf, Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)]);
+  pump();
 });
-child.on("exit", (code, signal) => {
-  try { unlinkSync(out); } catch {}
-  if (signal) process.kill(process.pid, signal);
-  process.exit(code ?? 1);
+
+process.stdin.on("end", () => {
+  if (framing !== "lsp" && buf.length) {
+    const line = buf.toString("utf8").trim();
+    buf = Buffer.alloc(0);
+    if (line) enqueue(line);
+  }
 });
+
+process.stdin.resume();
+log("grokbot-shopmonkey-plugin MCP server 0.2.0");
